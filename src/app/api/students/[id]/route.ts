@@ -13,11 +13,11 @@ export async function DELETE(
     try {
         const deletedStudent = await Student.findByIdAndDelete(id);
         if (!deletedStudent) {
-            return NextResponse.json({ success: false, error: 'Error: Student not found' }, { status: 404 });
+            return NextResponse.json({ success: false, error: 'erro: Student not found' }, { status: 404 });
         }
         return NextResponse.json({ success: true, data: {} });
     } catch (error) {
-        return NextResponse.json({ success: false, error: 'Error: Failed to delete student' }, { status: 400 });
+        return NextResponse.json({ success: false, error: 'error: Failed to delete student' }, { status: 400 });
     }
 }
 
