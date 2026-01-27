@@ -1,8 +1,10 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useMutation } from '@apollo/client';
+import { ADD_STUDENT, UPDATE_STUDENT } from '@/graphql/mutations';
+import { GET_STUDENTS } from '@/graphql/queries';
 
 interface StudentFormProps {
     editId?: string;
@@ -24,8 +26,38 @@ export default function StudentForm({ editId, initialData, onSuccess, onCancel }
         age: '',
         course: '',
     });
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    const [addStudent, { loading: addLoading }] = useMutation(ADD_STUDENT, {
+        refetchQueries: [{ query: GET_STUDENTS }],
+        onCompleted: () => {
+            setFormData({ name: '', email: '', age: '', course: '' });
+            if (onSuccess) {
+                onSuccess();
+            } else {
+                router.refresh();
+            }
+        },
+        onError: (err: any) => {
+            setError(err.message || 'Failed to add student');
+        }
+    });
+
+    const [updateStudent, { loading: updateLoading }] = useMutation(UPDATE_STUDENT, {
+        refetchQueries: [{ query: GET_STUDENTS }],
+        onCompleted: () => {
+            if (onSuccess) {
+                onSuccess();
+            } else {
+                router.refresh();
+            }
+        },
+        onError: (err: any) => {
+            setError(err.message || 'Failed to update student');
+        }
+    });
+
+    const loading = addLoading || updateLoading;
 
     useEffect(() => {
         if (initialData) {
@@ -47,39 +79,29 @@ export default function StudentForm({ editId, initialData, onSuccess, onCancel }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
         setError('');
 
-        const method = editId ? 'PUT' : 'POST';
-        const url = editId ? `/api/students/${editId}` : '/api/students';
+        const variables = {
+            name: formData.name,
+            email: formData.email,
+            age: formData.age ? parseInt(formData.age) : undefined,
+            course: formData.course,
+        };
 
         try {
-            const res = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-            });
-
-            const data = await res.json();
-
-            if (!data.success) {
-                throw new Error(data.error || 'Something went wrong');
-            }
-
-            setFormData({ name: '', email: '', age: '', course: '' });
-
-            if (onSuccess) {
-                onSuccess();
+            if (editId) {
+                await updateStudent({
+                    variables: {
+                        id: editId,
+                        ...variables
+                    }
+                });
             } else {
-                router.refresh(); // Refresh if no callback
+                await addStudent({ variables });
             }
-
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
+        } catch (err) {
+            // Error is handled by onError callback
+            console.error('Mutation error:', err);
         }
     };
 
