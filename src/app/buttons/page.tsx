@@ -1,3 +1,4 @@
+'use client'
 import React, { useState } from 'react';
 import { LayoutGrid, Settings, Users, ArrowRightToLine } from 'lucide-react';
 
